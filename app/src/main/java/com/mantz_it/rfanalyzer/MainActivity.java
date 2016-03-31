@@ -824,11 +824,15 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 
 		// Create a new instance of Scheduler and Processing Loop:
 		scheduler = new Scheduler(fftSize, source);
+
 		analyzerProcessingLoop = new AnalyzerProcessingLoop(
 				analyzerSurface, 			// Reference to the Analyzer Surface
 				fftSize,					// FFT size
 				scheduler.getFftOutputQueue(), // Reference to the input queue for the processing loop
-				scheduler.getFftInputQueue()); // Reference to the buffer-pool-return queue
+				scheduler.getFftInputQueue()
+				,getApplicationContext()
+
+		); // Reference to the buffer-pool-return queue
 		if(dynamicFrameRate)
 			analyzerProcessingLoop.setDynamicFrameRate(true);
 		else {

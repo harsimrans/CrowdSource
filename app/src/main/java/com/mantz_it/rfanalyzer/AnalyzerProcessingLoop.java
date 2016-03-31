@@ -1,7 +1,16 @@
 package com.mantz_it.rfanalyzer;
 
+import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -50,6 +59,7 @@ public class AnalyzerProcessingLoop extends Thread {
 	private FFT fftBlock = null;
 	private ArrayBlockingQueue<SamplePacket> inputQueue = null;		// queue that delivers sample packets
 	private ArrayBlockingQueue<SamplePacket> returnQueue = null;	// queue to return unused buffers
+	private Context context;
 
 	/**
 	 * Constructor. Will initialize the member attributes.
@@ -60,7 +70,7 @@ public class AnalyzerProcessingLoop extends Thread {
 	 * @param returnQueue	queue to return unused buffers
 	 */
 	public AnalyzerProcessingLoop(AnalyzerSurface view, int fftSize,
-				ArrayBlockingQueue<SamplePacket> inputQueue, ArrayBlockingQueue<SamplePacket> returnQueue) {
+				ArrayBlockingQueue<SamplePacket> inputQueue, ArrayBlockingQueue<SamplePacket> returnQueue,Context context) {
 		this.view = view;
 
 		// Check if fftSize is a power of 2
@@ -73,6 +83,7 @@ public class AnalyzerProcessingLoop extends Thread {
 		this.mag = new float[fftSize];
 		this.inputQueue = inputQueue;
 		this.returnQueue = returnQueue;
+		this.context = context;
 	}
 
 	public int getFrameRate() {
@@ -118,12 +129,30 @@ public class AnalyzerProcessingLoop extends Thread {
 
 	@Override
 	public void run() {
-		Log.i(LOGTAG,"Processing loop started. (Thread: " + this.getName() + ")");
+		Log.d(LOGTAG,"Processing loop started. (Thread: " + this.getName() + ")");
 		long startTime;		// timestamp when signal processing is started
 		long sleepTime;		// time (in ms) to sleep before the next run to meet the frame rate
 		long frequency;		// center frequency of the incoming samples
 		int sampleRate;		// sample rate of the incoming samples
+		FileOutputStream fo = null;
+		OutputStreamWriter fw = null;
 
+		try {
+			File mydir = context.getDir("RFAnalyzer", Context.MODE_PRIVATE);
+			if(!mydir.exists())
+			{
+				mydir.mkdirs();
+			}
+			File f = new File(mydir, "a.txt");
+			//File f = new File("/analyzer/"+this.getName()+new Date().getTime()+".txt");
+
+			f.createNewFile();
+			fo = new FileOutputStream(f,true);
+			fw =new OutputStreamWriter(fo);
+			fw.write(this.getName() + "\n");
+		} catch (IOException e) {
+			Log.e(this.getClass().getName(), "file cannot be processed", e);
+		}
 		while(!stopRequested) {
 			// store the current timestamp
 			startTime = System.currentTimeMillis();
@@ -153,6 +182,19 @@ public class AnalyzerProcessingLoop extends Thread {
 
 			// Push the results on the surface:
 			view.draw(mag, frequency, sampleRate, frameRate, load);
+			if(fw!=null){
+					Log.d("mojgan",frequency+"\t"+sampleRate+"\t"+frameRate+"\t"+load+"\n");
+				//try {
+					//fw.write(Arrays.toString(mag)+"\t");
+					//fw.write(frequency+"\t");
+					//fw.write(sampleRate+"\t");
+					//fw.write(frameRate+"\t");
+					//fw.write(load+"\n");
+				/////} catch (IOException e) {
+				//	e.printStackTrace();
+				//}
+			}
+
 
 			// Calculate the remaining time in this frame (according to the frame rate) and sleep
 			// for that time:
@@ -183,8 +225,28 @@ public class AnalyzerProcessingLoop extends Thread {
 				Log.e(LOGTAG,"Error while calling sleep()");
 			}
 		}
+		if(fw!=null){
+			try {
+				fo.flush();
+				fw.flush();
+				fo.close();
+				fw.close();
+
+			} catch (IOException e) {
+				Log.e(LOGTAG, "file cannot be closed", e);
+			}finally {
+				try {
+					fw.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
+
+		}
+
 		this.stopRequested = true;
-		Log.i(LOGTAG,"Processing loop stopped. (Thread: " + this.getName() + ")");
+		Log.d(LOGTAG,"Processing loop stopped. (Thread: " + this.getName() + ")");
 	}
 
 	/**
