@@ -183,7 +183,7 @@ public class AnalyzerProcessingLoop extends Thread {
 			// Push the results on the surface:
 			view.draw(mag, frequency, sampleRate, frameRate, load);
 			if(fw!=null){
-					Log.d("mojgan",frequency+"\t"+sampleRate+"\t"+frameRate+"\t"+load+"\n");
+				//Log.d("mojgan",frequency+"\t"+sampleRate+"\t"+frameRate+"\t"+load+"\n");
 				//try {
 					//fw.write(Arrays.toString(mag)+"\t");
 					//fw.write(frequency+"\t");

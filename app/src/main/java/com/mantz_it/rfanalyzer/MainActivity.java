@@ -118,10 +118,11 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 		// Start logging if enabled:
 		if(preferences.getBoolean(getString(R.string.pref_logging), false)) {
 			try{
-				File logfile = new File(preferences.getString(getString(R.string.pref_logfile), ""));
+				String fileName = preferences.getString(getString(R.string.pref_logfile), "");
+				File logfile = new File(fileName);
 				logfile.getParentFile().mkdir();	// Create folder
-				logcat = Runtime.getRuntime().exec("logcat -f " + logfile);
-				Log.i("MainActivity", "onCreate: started logcat ("+logcat.toString()+") to " + logfile);
+					logcat = Runtime.getRuntime().exec("logcat -f " + logfile + " *:S mojgan:I ");
+				Log.i("MainActivity", "onCreate: started logcat (" + logcat.toString() + ") to " + logfile);
 			} catch (Exception e) {
 				Log.e("MainActivity", "onCreate: Failed to start logging!");
 			}
@@ -136,10 +137,10 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 		analyzerSurface.setVerticalZoomEnabled(preferences.getBoolean(getString(R.string.pref_zoomDB), true));
 		analyzerSurface.setDecoupledAxis(preferences.getBoolean(getString(R.string.pref_decoupledAxis), false));
 		analyzerSurface.setDisplayRelativeFrequencies(preferences.getBoolean(getString(R.string.pref_relativeFrequencies), false));
-		analyzerSurface.setWaterfallColorMapType(Integer.valueOf(preferences.getString(getString(R.string.pref_colorMapType),"4")));
-		analyzerSurface.setFftDrawingType(Integer.valueOf(preferences.getString(getString(R.string.pref_fftDrawingType),"2")));
+		analyzerSurface.setWaterfallColorMapType(Integer.valueOf(preferences.getString(getString(R.string.pref_colorMapType), "4")));
+		analyzerSurface.setFftDrawingType(Integer.valueOf(preferences.getString(getString(R.string.pref_fftDrawingType), "2")));
 		analyzerSurface.setFftRatio(Float.valueOf(preferences.getString(getString(R.string.pref_spectrumWaterfallRatio), "0.5")));
-		analyzerSurface.setFontSize(Integer.valueOf(preferences.getString(getString(R.string.pref_fontSize),"2")));
+		analyzerSurface.setFontSize(Integer.valueOf(preferences.getString(getString(R.string.pref_fontSize), "2")));
 		analyzerSurface.setShowDebugInformation(preferences.getBoolean(getString(R.string.pref_showDebugInformation), false));
 
 		// Put the analyzer surface in the analyzer frame of the layout:

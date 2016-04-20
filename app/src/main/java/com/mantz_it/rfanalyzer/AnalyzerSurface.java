@@ -14,6 +14,7 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import java.util.Date;
 
 /**
  * <h1>RF Analyzer - Analyzer Surface</h1>
@@ -109,6 +110,10 @@ public class AnalyzerSurface extends SurfaceView implements SurfaceHolder.Callba
 
 	private boolean recordingEnabled = false;		// indicates whether recording is currently running or not
 
+	//mojgan
+	private long previoustimestamp=0;
+
+
 	private boolean demodulationEnabled = false;	// indicates whether demodulation is enabled or disabled
 	private long channelFrequency = -1;				// center frequency of the demodulator
 	private int channelWidth = -1;					// (half) width of the channel filter of the demodulator
@@ -116,6 +121,8 @@ public class AnalyzerSurface extends SurfaceView implements SurfaceHolder.Callba
 	private boolean squelchSatisfied = false;		// indicates whether the current signal is strong enough to cross the squelch threshold
 	private boolean showLowerBand = true;			// indicates whether the lower side band of the channel selector is visible
 	private boolean showUpperBand = true;			// indicates whether the upper side band of the channel selector is visible
+
+
 
 	// scroll type stores the intention of the user on a pointer down event:
 	private int scrollType = 0;
@@ -1441,6 +1448,17 @@ public class AnalyzerSurface extends SurfaceView implements SurfaceHolder.Callba
 
 			// increase yPos:
 			yPos += bounds.height() * 1.1f;
+		}
+
+		//log info
+		//long previoustimestamp=0;
+
+		if (demodulationEnabled){
+			Date date = new Date();
+			long timestamp = date.getTime();
+			if(timestamp-previoustimestamp >= 1000) {
+				Log.e("mojgan", timestamp + "\t" + "," + String.format("%2.1f \t , %4.6f", averageSignalStrength, channelFrequency/1000000f)+"\n");
+				previoustimestamp=timestamp;}
 		}
 
 		// Draw recording information
