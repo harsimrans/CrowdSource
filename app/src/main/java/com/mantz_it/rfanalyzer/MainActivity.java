@@ -3,14 +3,18 @@ package com.mantz_it.rfanalyzer;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.media.AudioManager;
 import android.net.Uri;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -38,8 +42,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * <h1>RF Analyzer - Main Activity</h1>
@@ -83,7 +91,15 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 	private boolean running = false;
 	private File recordingFile = null;
 	private int demodulationMode = Demodulator.DEMODULATION_OFF;
+	Context mContext;
+	Timer timer;
+	TimerTask timerTask;
 
+
+	final Handler handler = new Handler();
+
+	/** WiFi manager used to scan and get scan results */
+	WifiManager mainWifi;
 	private static final String LOGTAG = "MainActivity";
 	private static final String RECORDING_DIR = "RFAnalyzer";
 	public static final int RTL2832U_RESULT_CODE = 1234;	// arbitrary value, used when sending intent to RTL2832U
@@ -97,7 +113,8 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		this.savedInstanceState = savedInstanceState;
-
+		mContext = MainActivity.this;
+		mainWifi = (WifiManager) mContext.getSystemService(Context.WIFI_SERVICE);
 		// Set default Settings on first run:
 		PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 
@@ -121,7 +138,7 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 				String fileName = preferences.getString(getString(R.string.pref_logfile), "");
 				File logfile = new File(fileName);
 				logfile.getParentFile().mkdir();	// Create folder
-					logcat = Runtime.getRuntime().exec("logcat -f " + logfile + " *:S mojgan:I ");
+					logcat = Runtime.getRuntime().exec("logcat -f " + logfile + "");
 				Log.i("MainActivity", "onCreate: started logcat (" + logcat.toString() + ") to " + logfile);
 			} catch (Exception e) {
 				Log.e("MainActivity", "onCreate: Failed to start logging!");
@@ -174,6 +191,7 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 					public void run() {
 						try {
 							Thread.sleep(1500);
+							System.out.println("oncreate");
 							startAnalyzer();
 						} catch (InterruptedException e) {
 							Log.e(LOGTAG, "onCreate: (timer thread): Interrupted while sleeping.");
@@ -299,68 +317,68 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 		this.runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-			// Set title and icon of the start/stop button according to the state:
-			if(mi_startStop != null) {
-				if (running) {
-					mi_startStop.setTitle(R.string.action_stop);
-					mi_startStop.setIcon(R.drawable.ic_action_pause);
-				} else {
-					mi_startStop.setTitle(R.string.action_start);
-					mi_startStop.setIcon(R.drawable.ic_action_play);
+				// Set title and icon of the start/stop button according to the state:
+				if (mi_startStop != null) {
+					if (running) {
+						mi_startStop.setTitle(R.string.action_stop);
+						mi_startStop.setIcon(R.drawable.ic_action_pause);
+					} else {
+						mi_startStop.setTitle(R.string.action_start);
+						mi_startStop.setIcon(R.drawable.ic_action_play);
+					}
 				}
-			}
 
-			// Set title and icon for the demodulator mode button
-			if(mi_demodulationMode != null) {
-				int iconRes;
-				int titleRes;
-				switch (demodulationMode) {
-					case Demodulator.DEMODULATION_OFF:
-						iconRes = R.drawable.ic_action_demod_off;
-						titleRes = R.string.action_demodulation_off;
-						break;
-					case Demodulator.DEMODULATION_AM:
-						iconRes = R.drawable.ic_action_demod_am;
-						titleRes = R.string.action_demodulation_am;
-						break;
-					case Demodulator.DEMODULATION_NFM:
-						iconRes = R.drawable.ic_action_demod_nfm;
-						titleRes = R.string.action_demodulation_nfm;
-						break;
-					case Demodulator.DEMODULATION_WFM:
-						iconRes = R.drawable.ic_action_demod_wfm;
-						titleRes = R.string.action_demodulation_wfm;
-						break;
-					case Demodulator.DEMODULATION_LSB:
-						iconRes = R.drawable.ic_action_demod_lsb;
-						titleRes = R.string.action_demodulation_lsb;
-						break;
-					case Demodulator.DEMODULATION_USB:
-						iconRes = R.drawable.ic_action_demod_usb;
-						titleRes = R.string.action_demodulation_usb;
-						break;
-					default:
-						Log.e(LOGTAG,"updateActionBar: invalid mode: " + demodulationMode);
-						iconRes = -1;
-						titleRes = -1;
-						break;
+				// Set title and icon for the demodulator mode button
+				if (mi_demodulationMode != null) {
+					int iconRes;
+					int titleRes;
+					switch (demodulationMode) {
+						case Demodulator.DEMODULATION_OFF:
+							iconRes = R.drawable.ic_action_demod_off;
+							titleRes = R.string.action_demodulation_off;
+							break;
+						case Demodulator.DEMODULATION_AM:
+							iconRes = R.drawable.ic_action_demod_am;
+							titleRes = R.string.action_demodulation_am;
+							break;
+						case Demodulator.DEMODULATION_NFM:
+							iconRes = R.drawable.ic_action_demod_nfm;
+							titleRes = R.string.action_demodulation_nfm;
+							break;
+						case Demodulator.DEMODULATION_WFM:
+							iconRes = R.drawable.ic_action_demod_wfm;
+							titleRes = R.string.action_demodulation_wfm;
+							break;
+						case Demodulator.DEMODULATION_LSB:
+							iconRes = R.drawable.ic_action_demod_lsb;
+							titleRes = R.string.action_demodulation_lsb;
+							break;
+						case Demodulator.DEMODULATION_USB:
+							iconRes = R.drawable.ic_action_demod_usb;
+							titleRes = R.string.action_demodulation_usb;
+							break;
+						default:
+							Log.e(LOGTAG, "updateActionBar: invalid mode: " + demodulationMode);
+							iconRes = -1;
+							titleRes = -1;
+							break;
+					}
+					if (titleRes > 0 && iconRes > 0) {
+						mi_demodulationMode.setTitle(titleRes);
+						mi_demodulationMode.setIcon(iconRes);
+					}
 				}
-				if(titleRes > 0 && iconRes > 0) {
-					mi_demodulationMode.setTitle(titleRes);
-					mi_demodulationMode.setIcon(iconRes);
-				}
-			}
 
-			// Set title and icon of the record button according to the state:
-			if(mi_record != null) {
-				if (recordingFile != null) {
-					mi_record.setTitle(R.string.action_recordOn);
-					mi_record.setIcon(R.drawable.ic_action_record_on);
-				} else {
-					mi_record.setTitle(R.string.action_recordOff);
-					mi_record.setIcon(R.drawable.ic_action_record_off);
+				// Set title and icon of the record button according to the state:
+				if (mi_record != null) {
+					if (recordingFile != null) {
+						mi_record.setTitle(R.string.action_recordOn);
+						mi_record.setIcon(R.drawable.ic_action_record_on);
+					} else {
+						mi_record.setTitle(R.string.action_recordOff);
+						mi_record.setIcon(R.drawable.ic_action_record_off);
+					}
 				}
-			}
 			}
 		});
 
@@ -371,7 +389,6 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 		super.onStart();
 		// Check if the user changed the preferences:
 		checkForChangedPreferences();
-
 		// Start the analyzer if running is true:
 		if (running)
 			startAnalyzer();
@@ -737,6 +754,7 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 	 * source), the processing loop and the demodulator if running.
 	 */
 	public void stopAnalyzer() {
+		stopTimer();
 		// Stop the Scheduler if running:
 		if(scheduler != null) {
 			// Stop recording in case it is running:
@@ -792,6 +810,52 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 			}
 		});
 	}
+	public void initializeTimerTask() {
+		timerTask = new TimerTask() {
+			public void run() {
+				//use a handler to get the current timestamp
+				handler.post(new Runnable() {
+					public void run() {
+						//get the current timeStamp
+						Date date = new Date();
+						long timestamp = date.getTime();
+						long sample_interval = 500;
+
+						//wifi.startScan(receiverWifi, String.valueOf( sample_interval));
+						mainWifi.startScan();
+						List<ScanResult> wifiList = mainWifi.getScanResults();
+
+
+						ArrayList<LogRecord> Records = new ArrayList<LogRecord>();
+						Records.clear();
+						if (!wifiList.isEmpty()) {
+
+							for (int i = 0; i < wifiList.size(); i++) {
+								LogRecord lr = new LogRecord(timestamp,   wifiList.get(i).BSSID,wifiList.get(i).level);
+								Records.add(lr);
+							}
+
+							AnalyzerProcessingLoop.appendLog(Records);
+						}
+
+					}
+				});
+			}
+		};
+	}
+
+	public void startTimer() {
+		timer = new Timer();
+		initializeTimerTask();
+		timer.schedule(timerTask, 500, 1000); //
+		Log.i(LOGTAG,"wifi scanner started");
+	}
+	public void stopTimer(){
+		if(timer!=null)	{
+			timer.cancel();
+			Log.i(LOGTAG,"wifi scanner stopped");
+		}
+	}
 
 	/**
 	 * Will start the RF Analyzer. This includes creating a source (if null), open a source
@@ -800,8 +864,9 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 	 */
 	public void startAnalyzer() {
 		this.stopAnalyzer();	// Stop if running; This assures that we don't end up with multiple instances of the thread loops
+		this.stopTimer();
 
-		// Retrieve fft size and frame rate from the preferences
+			// Retrieve fft size and frame rate from the preferences
 		int fftSize = Integer.valueOf(preferences.getString(getString(R.string.pref_fftSize), "1024"));
 		int frameRate = Integer.valueOf(preferences.getString(getString(R.string.pref_frameRate), "1"));
 		boolean dynamicFrameRate = preferences.getBoolean(getString(R.string.pref_dynamicFrameRate), true);
@@ -844,6 +909,7 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 		// Start both threads:
 		scheduler.start();
 		analyzerProcessingLoop.start();
+		startTimer();
 
 		scheduler.setChannelFrequency(analyzerSurface.getChannelFrequency());
 

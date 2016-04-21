@@ -1457,7 +1457,8 @@ public class AnalyzerSurface extends SurfaceView implements SurfaceHolder.Callba
 			Date date = new Date();
 			long timestamp = date.getTime();
 			if(timestamp-previoustimestamp >= 1000) {
-				Log.e("mojgan", timestamp + "\t" + "," + String.format("%2.1f \t , %4.6f", averageSignalStrength, channelFrequency/1000000f)+"\n");
+				//Log.e("mojgan", timestamp + "\t" + "," + String.format("%2.1f \t , %4.6f", averageSignalStrength, channelFrequency/1000000f)+"\n");
+				AnalyzerProcessingLoop.appendLog(timestamp + "\t" + "," + String.format("%2.1f \t , %4.6f", averageSignalStrength, channelFrequency / 1000000f) + "\n");
 				previoustimestamp=timestamp;}
 		}
 

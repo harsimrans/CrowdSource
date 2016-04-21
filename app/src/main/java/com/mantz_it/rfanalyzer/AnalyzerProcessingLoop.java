@@ -3,7 +3,9 @@ package com.mantz_it.rfanalyzer;
 import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
+import android.widget.Toast;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -11,6 +13,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -278,5 +281,110 @@ public class AnalyzerProcessingLoop extends Thread {
 			imagPower = imagPower * imagPower;
 			mag[targetIndex] = (float) (10* Math.log10(Math.sqrt(realPower + imagPower)));
 		}
+	}
+	public static void appendLog(String appendString){
+		String header = "# Timestamp, frequency, RSS\n";
+		Date d=new Date();
+		int day = d.getDate();
+		int mon = d.getMonth()+1;
+		int yr = d.getYear();
+		String logFileName = "/logs/"+mon+"_"+day+"_"+yr+"_trrss.txt";
+		File logFile;
+		File dir;
+		if (isExternalStorageWritable())
+		{
+			logFile = new File(Environment.getExternalStorageDirectory(), logFileName);
+			dir = new File(Environment.getExternalStorageDirectory(), "/logs");
+			if (!logFile.exists()){
+				try	{
+					dir.mkdirs();
+					logFile.createNewFile();
+					//BufferedWriter for performance, true to set append to file flag
+					BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true));
+					buf.append(header);
+					buf.newLine();
+					buf.close();
+				}
+				catch (IOException e)
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			try
+			{
+				//BufferedWriter for performance, true to set append to file flag
+				BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true));
+				buf.append(appendString);
+				buf.close();
+			}
+			catch (IOException e)
+			{
+				e.printStackTrace();
+			}}
+	}
+	public static void appendLog(List<LogRecord> Records)
+	{
+		String header = "# Timestamp, MAC Address of AP, RSS\n";
+		LogRecord writeRecord;
+		LogRecord writeLR;
+		Date d=new Date();
+		int day = d.getDate();
+		int mon = d.getMonth()+1;
+		int yr = d.getYear();
+		String logFileName = "/logs/"+mon+"_"+day+"_"+yr+"_wifirss.txt";
+		File logFile;
+		File dir;
+
+		if (isExternalStorageWritable())
+		{
+			logFile = new File(Environment.getExternalStorageDirectory(), logFileName);
+			dir = new File(Environment.getExternalStorageDirectory(), "/logs");
+
+
+
+			if (!logFile.exists())
+			{
+				try
+				{
+
+					dir.mkdirs();
+					logFile.createNewFile();
+					//BufferedWriter for performance, true to set append to file flag
+					BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true));
+					buf.append(header);
+					buf.newLine();
+					buf.close();
+				}
+				catch (IOException e)
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			try
+			{
+				//BufferedWriter for performance, true to set append to file flag
+				BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true));
+				for (int i = 0; i < Records.size(); ++i) {
+					writeRecord = Records.get(i);
+					buf.append(writeRecord.toString());
+
+				}
+
+				buf.close();
+			}
+			catch (IOException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}}
+	}
+	public static boolean isExternalStorageWritable() {
+		String state = Environment.getExternalStorageState();
+		if (Environment.MEDIA_MOUNTED.equals(state)) {
+			return true;
+		}
+		return false;
 	}
 }
