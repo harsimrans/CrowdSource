@@ -41,6 +41,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -48,6 +49,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import static android.os.Environment.getExternalStorageDirectory;
 
 /**
  * <h1>RF Analyzer - Main Activity</h1>
@@ -122,7 +125,7 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 		preferences = PreferenceManager.getDefaultSharedPreferences(this);
 
 		// Overwrite defaults for file paths in the preferences:
-		String extStorage = Environment.getExternalStorageDirectory().getAbsolutePath();	// get the path to the ext. storage
+		String extStorage = getExternalStorageDirectory().getAbsolutePath();	// get the path to the ext. storage
 		// File Source file:
 		String defaultFile = getString(R.string.pref_filesource_file_default);
 		if(preferences.getString(getString(R.string.pref_filesource_file), "").equals(defaultFile))
@@ -930,7 +933,7 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 				getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 			}
 		});
-	}
+    }
 
 	/**
 	 * Will pop up a dialog to let the user choose a demodulation mode.
@@ -1357,7 +1360,7 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 			return;
 		}
 
-		final String externalDir = Environment.getExternalStorageDirectory().getAbsolutePath();
+		final String externalDir = getExternalStorageDirectory().getAbsolutePath();
 		final int[] supportedSampleRates = source.getSupportedSampleRates();
 		final double maxFreqMHz = source.getMaxFrequency() / 1000000f; // max frequency of the source in MHz
 		final int sourceType = Integer.valueOf(preferences.getString(getString(R.string.pref_sourceType), "1"));
@@ -1551,8 +1554,11 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 		if(scheduler.isRecording()) {
 			scheduler.stopRecording();
 		}
+		String fileNA = null;
 		if(recordingFile != null) {
 			final String filename = recordingFile.getAbsolutePath();
+            fileNA = filename;
+            Log.d("some string", filename);
 			final long filesize = recordingFile.length()/1000000;	// file size in MB
 			runOnUiThread(new Runnable() {
 				@Override
@@ -1560,12 +1566,73 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 					Toast.makeText(MainActivity.this, "Recording stopped: " + filename + " (" + filesize + " MB)", Toast.LENGTH_LONG).show();
 				}
 			});
-			recordingFile = null;
+			//recordingFile = null;
 			updateActionBar();
 		}
 		if(analyzerSurface != null)
 			analyzerSurface.setRecordingEnabled(false);
-	}
+
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    //sending the file
+                    //sending the actual file
+                    Log.d("FILESEND: ", "begin sending of file");
+                    String charset = "UTF-8";
+                    String requestURL = "http://54.212.202.150/accept_file.php";
+
+                    MultipartUtility multipart = new MultipartUtility(requestURL, charset);
+                    //multipart.addFormField("param_name_1", "upload");
+                    //multipart.addFormField("param_name_2", "param_value");
+                    //multipart.addFormField("param_name_3", "param_value");
+                    Log.d("PATHWEGOT", "reached here");
+					multipart.addFilePart("upload", new File(recordingFile.getAbsolutePath()));
+                    //multipart.addFilePart("upload", new File(recordingFile.getAbsolutePath()));
+                    String response = multipart.finish(); // response from server.
+                    Log.d("POSTRES: respo", response);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Date d = new Date();
+                int day = d.getDate();
+                int mon = d.getMonth()+1;
+                int yr = d.getYear();
+                String logFileName = "/logs/"+mon+"_"+day+"_"+yr+"_wifirss.txt";
+
+                try {
+                    //sending the file
+                    //sending the actual file
+                    Log.d("FILESEND: ", "begin sending of file");
+                    String charset = "UTF-8";
+                    String requestURL = "http://54.212.202.150/accept_file.php";
+
+                    MultipartUtility multipart = new MultipartUtility(requestURL, charset);
+                    //multipart.addFormField("param_name_1", "upload");
+                    //multipart.addFormField("param_name_2", "param_value");
+                    //multipart.addFormField("param_name_3", "param_value");
+                    Log.d("PATHWEGOT", "reached here wifi");
+                    multipart.addFilePart("upload", new File(getExternalStorageDirectory() + logFileName));
+                    //multipart.addFilePart("upload", new File(recordingFile.getAbsolutePath()));
+                    String response = multipart.finish(); // response from server.
+                    Log.d("POSTRES: respo", response);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
+
+        ).start();
+    }
 
 	/**
 	 * Called by the analyzer surface after the user changed the channel width
