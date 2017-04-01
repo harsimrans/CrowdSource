@@ -98,6 +98,8 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 	Timer timer;
 	TimerTask timerTask;
 
+	//create location manager
+	LocationLogger locationLogger = new LocationLogger();
 
 	final Handler handler = new Handler();
 
@@ -147,6 +149,8 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 				Log.e("MainActivity", "onCreate: Failed to start logging!");
 			}
 		}
+
+
 
 		// Get references to the GUI components:
 		fl_analyzerFrame = (FrameLayout) findViewById(R.id.fl_analyzerFrame);
@@ -758,6 +762,10 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 	 */
 	public void stopAnalyzer() {
 		stopTimer();
+
+		//stop the location readings
+		locationLogger.stopGPSLogger();
+
 		// Stop the Scheduler if running:
 		if(scheduler != null) {
 			// Stop recording in case it is running:
@@ -868,6 +876,9 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 	public void startAnalyzer() {
 		this.stopAnalyzer();	// Stop if running; This assures that we don't end up with multiple instances of the thread loops
 		this.stopTimer();
+
+        //start the GPS readings
+		locationLogger.runGPSLogger(getApplicationContext());
 
 			// Retrieve fft size and frame rate from the preferences
 		int fftSize = Integer.valueOf(preferences.getString(getString(R.string.pref_fftSize), "1024"));
@@ -1573,6 +1584,7 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 			analyzerSurface.setRecordingEnabled(false);
 
 
+        /*
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1632,7 +1644,9 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
         }
 
         ).start();
-    }
+    */
+	}
+
 
 	/**
 	 * Called by the analyzer surface after the user changed the channel width
