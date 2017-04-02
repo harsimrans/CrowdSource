@@ -71,7 +71,7 @@ public class LocationLogger {
 
 
                 FileOutputStream stream = new FileOutputStream(logFile, true);
-                stream.write("#index, lat, long, time".getBytes());
+                stream.write("lat, long, time\n".getBytes());
                 try {
                     for(Reading r : readings) {
                         stream.write((r.mLat + "," + r.mLon + "," + r.mTime + "\n").getBytes());
