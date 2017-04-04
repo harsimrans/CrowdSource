@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.telephony.TelephonyManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -49,6 +50,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 
 import static android.os.Environment.getExternalStorageDirectory;
 
@@ -102,6 +104,22 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 	LocationLogger locationLogger = new LocationLogger();
 
 	final Handler handler = new Handler();
+
+
+	public String getUniqueDeviceID(){
+		final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
+
+		final String tmDevice, tmSerial, androidId;
+		tmDevice = "" + tm.getDeviceId();
+		tmSerial = "" + tm.getSimSerialNumber();
+		androidId = "" + android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+
+		UUID deviceUuid = new UUID(androidId.hashCode(), ((long)tmDevice.hashCode() << 32) | tmSerial.hashCode());
+		String deviceId = deviceUuid.toString();
+		Log.d("sometag", deviceId);
+		return deviceId;
+	}
+	
 
 	/** WiFi manager used to scan and get scan results */
 	WifiManager mainWifi;
@@ -1584,7 +1602,7 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 			analyzerSurface.setRecordingEnabled(false);
 
 
-        /*
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1593,10 +1611,10 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
                     //sending the actual file
                     Log.d("FILESEND: ", "begin sending of file");
                     String charset = "UTF-8";
-                    String requestURL = "http://54.212.202.150/accept_file.php";
+                    String requestURL = "http://54.212.202.150/accept_file1.php";
 
                     MultipartUtility multipart = new MultipartUtility(requestURL, charset);
-                    //multipart.addFormField("param_name_1", "upload");
+                    multipart.addFormField("devid", getUniqueDeviceID());
                     //multipart.addFormField("param_name_2", "param_value");
                     //multipart.addFormField("param_name_3", "param_value");
                     Log.d("PATHWEGOT", "reached here");
@@ -1625,10 +1643,10 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
                     //sending the actual file
                     Log.d("FILESEND: ", "begin sending of file");
                     String charset = "UTF-8";
-                    String requestURL = "http://54.212.202.150/accept_file.php";
+                    String requestURL = "http://54.212.202.150/accept_file1.php";
 
                     MultipartUtility multipart = new MultipartUtility(requestURL, charset);
-                    //multipart.addFormField("param_name_1", "upload");
+                    multipart.addFormField("devid", getUniqueDeviceID());
                     //multipart.addFormField("param_name_2", "param_value");
                     //multipart.addFormField("param_name_3", "param_value");
                     Log.d("PATHWEGOT", "reached here wifi");
@@ -1644,7 +1662,7 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
         }
 
         ).start();
-    */
+
 	}
 
 
