@@ -68,8 +68,7 @@ public class LocationLogger {
                     dir.mkdir();
                     logFile.createNewFile();
                 }
-
-
+                
                 FileOutputStream stream = new FileOutputStream(logFile, true);
                 stream.write("lat, long, time\n".getBytes());
                 try {
@@ -85,11 +84,12 @@ public class LocationLogger {
         }
     }
 
-    private LocationManager locationManager;
+    private LocationManager locationManager=null;
     private double longitude;
     private double latitude;
     Context context;
     TimerTask t;
+    boolean locationManagerSet = false;
 
     boolean interrupt = true;
 
@@ -118,7 +118,7 @@ public class LocationLogger {
 
     }
 
-    public void stopLocationListener(Context context) {
+    public void stopLocationListener() {
             locationManager.removeUpdates(locationListener);
     }
 
@@ -171,6 +171,7 @@ public class LocationLogger {
 
     public void stopGPSLogger(){
         stopTimer();
+
         mReadings.writeReadings();
     }
     /*

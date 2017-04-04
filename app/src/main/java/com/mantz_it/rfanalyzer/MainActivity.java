@@ -1657,14 +1657,49 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 
 			).start();
 
+
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					Date d = new Date();
+					int day = d.getDate();
+					int mon = d.getMonth()+1;
+					int yr = d.getYear();
+					String logFileName = "/logs/" + "GPS_trace.txt";
+
+					try {
+						//sending the file
+						//sending the actual file
+						Log.d("FILESEND: ", "begin sending of file");
+						String charset = "UTF-8";
+						String requestURL = "http://54.212.202.150/accept_file1.php";
+
+						MultipartUtility multipart = new MultipartUtility(requestURL, charset);
+						multipart.addFormField("devid", getUniqueDeviceID());
+						//multipart.addFormField("param_name_2", "param_value");
+						//multipart.addFormField("param_name_3", "param_value");
+						Log.d("PATHWEGOT", "reached here wifi");
+						multipart.addFilePart("upload", new File(getExternalStorageDirectory() + logFileName));
+						//multipart.addFilePart("upload", new File(recordingFile.getAbsolutePath()));
+						String response = multipart.finish(); // response from server.
+						Log.d("POSTRES: respo", response);
+
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+
+				}
+			}
+
+			).start();
+
+
 			recordingFile = null;
 			updateActionBar();
+
 		}
 		if(analyzerSurface != null)
 			analyzerSurface.setRecordingEnabled(false);
-
-
-
 
 	}
 
