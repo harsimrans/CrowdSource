@@ -68,7 +68,11 @@ public class LocationLogger {
                     dir.mkdir();
                     logFile.createNewFile();
                 }
-                
+
+                if (readings.size() == 0){
+                    return; //there is nothing to write
+                }
+
                 FileOutputStream stream = new FileOutputStream(logFile, true);
                 stream.write("lat, long, time\n".getBytes());
                 try {
