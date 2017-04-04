@@ -1580,13 +1580,12 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 	}
 
 	public void stopRecording() {
+
 		if(scheduler.isRecording()) {
 			scheduler.stopRecording();
 		}
-		String fileNA = null;
 		if(recordingFile != null) {
 			final String filename = recordingFile.getAbsolutePath();
-            fileNA = filename;
             Log.d("some string", filename);
 			final long filesize = recordingFile.length()/1000000;	// file size in MB
 			runOnUiThread(new Runnable() {
@@ -1595,7 +1594,70 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 					Toast.makeText(MainActivity.this, "Recording stopped: " + filename + " (" + filesize + " MB)", Toast.LENGTH_LONG).show();
 				}
 			});
-			//recordingFile = null;
+
+			final String recordingFileAbsPath = recordingFile.getAbsolutePath();
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						//sending the file
+						//sending the actual file
+						Log.d("FILESEND: ", "begin sending of file");
+						String charset = "UTF-8";
+						String requestURL = "http://54.212.202.150/accept_file1.php";
+
+						MultipartUtility multipart = new MultipartUtility(requestURL, charset);
+						multipart.addFormField("devid", getUniqueDeviceID());
+						//multipart.addFormField("param_name_2", "param_value");
+						//multipart.addFormField("param_name_3", "param_value");
+						Log.d("PATHWEGOT", "reached here");
+						multipart.addFilePart("upload", new File(recordingFileAbsPath));
+						//multipart.addFilePart("upload", new File(recordingFile.getAbsolutePath()));
+						String response = multipart.finish(); // response from server.
+						Log.d("POSTRES: respo", response);
+						recordingFile = null;
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}).start();
+
+
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					Date d = new Date();
+					int day = d.getDate();
+					int mon = d.getMonth()+1;
+					int yr = d.getYear();
+					String logFileName = "/logs/"+mon+"_"+day+"_"+yr+"_wifirss.txt";
+
+					try {
+						//sending the file
+						//sending the actual file
+						Log.d("FILESEND: ", "begin sending of file");
+						String charset = "UTF-8";
+						String requestURL = "http://54.212.202.150/accept_file1.php";
+
+						MultipartUtility multipart = new MultipartUtility(requestURL, charset);
+						multipart.addFormField("devid", getUniqueDeviceID());
+						//multipart.addFormField("param_name_2", "param_value");
+						//multipart.addFormField("param_name_3", "param_value");
+						Log.d("PATHWEGOT", "reached here wifi");
+						multipart.addFilePart("upload", new File(getExternalStorageDirectory() + logFileName));
+						//multipart.addFilePart("upload", new File(recordingFile.getAbsolutePath()));
+						String response = multipart.finish(); // response from server.
+						Log.d("POSTRES: respo", response);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+
+				}
+			}
+
+			).start();
+
+			recordingFile = null;
 			updateActionBar();
 		}
 		if(analyzerSurface != null)
@@ -1603,65 +1665,6 @@ public class MainActivity extends Activity implements IQSourceInterface.Callback
 
 
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    //sending the file
-                    //sending the actual file
-                    Log.d("FILESEND: ", "begin sending of file");
-                    String charset = "UTF-8";
-                    String requestURL = "http://54.212.202.150/accept_file1.php";
-
-                    MultipartUtility multipart = new MultipartUtility(requestURL, charset);
-                    multipart.addFormField("devid", getUniqueDeviceID());
-                    //multipart.addFormField("param_name_2", "param_value");
-                    //multipart.addFormField("param_name_3", "param_value");
-                    Log.d("PATHWEGOT", "reached here");
-					multipart.addFilePart("upload", new File(recordingFile.getAbsolutePath()));
-                    //multipart.addFilePart("upload", new File(recordingFile.getAbsolutePath()));
-                    String response = multipart.finish(); // response from server.
-                    Log.d("POSTRES: respo", response);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
-
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Date d = new Date();
-                int day = d.getDate();
-                int mon = d.getMonth()+1;
-                int yr = d.getYear();
-                String logFileName = "/logs/"+mon+"_"+day+"_"+yr+"_wifirss.txt";
-
-                try {
-                    //sending the file
-                    //sending the actual file
-                    Log.d("FILESEND: ", "begin sending of file");
-                    String charset = "UTF-8";
-                    String requestURL = "http://54.212.202.150/accept_file1.php";
-
-                    MultipartUtility multipart = new MultipartUtility(requestURL, charset);
-                    multipart.addFormField("devid", getUniqueDeviceID());
-                    //multipart.addFormField("param_name_2", "param_value");
-                    //multipart.addFormField("param_name_3", "param_value");
-                    Log.d("PATHWEGOT", "reached here wifi");
-                    multipart.addFilePart("upload", new File(getExternalStorageDirectory() + logFileName));
-                    //multipart.addFilePart("upload", new File(recordingFile.getAbsolutePath()));
-                    String response = multipart.finish(); // response from server.
-                    Log.d("POSTRES: respo", response);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            }
-        }
-
-        ).start();
 
 	}
 
